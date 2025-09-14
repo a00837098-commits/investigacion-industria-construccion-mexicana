@@ -1,0 +1,394 @@
+---
+title: "Untitled"
+author: "Nelly Rubio Palomino"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(readr)
+library(readxl)
+library(tidyverse)
+library(stringr)
+library(stringi)
+```
+
+```{r, message=FALSE}
+#Limpieza Empleo 
+Empleo <- read_csv("C:/Users/npalo/Downloads/Documents/Fuente de datos/Plataformas/1.csv")
+
+empleo <- Empleo[4:23,]
+colnames(empleo) <- as.character(unlist(empleo[1, ]))  # la fila 1 ahora es la cabecera
+empleo <- empleo[-1, ]
+
+empleo_long <- pivot_longer(
+  empleo,
+  cols = -Periodos,         # todas las columnas excepto Periodo
+  names_to = "Variable",   # nombre de la columna que contendrá los nombres de las variables originales
+  values_to = "Valor"      # nombre de la columna que contendrá los valores
+)
+```
+
+```{r}
+
+#hacer mini tablitas
+tasa_ocupacion <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Tasa de ocupación por entidad federativa")))
+
+valor_obras_zona <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Valor de producción según la localización de las obras > Total de valor de producción según la localización de las obras ")))
+
+remuneraciones_totales <- empleo_long %>%
+  filter(str_detect(Variable, fixed("Remuneraciones > Remuneraciones totales >")))
+
+remuneraciones_obreros <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Remuneraciones > Salarios pagados a obreros >")))
+
+remuneraciones_admin <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Remuneraciones > Sueldos pagados a empleados administrativos, contables y de dirección")))
+
+remuneraciones_prestaciones <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Remuneraciones > Prestaciones sociales,contribuciones y utilidades")))
+
+gastos_bienes_servicios <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Gastos por consumo de bienes y servicios > Total de gastos por consumo de bienes y servicios > ")))
+
+gastos_materiales <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Gastos en materiales para la construcción como contratista principal y materiales dados a subcontratistas >")))
+
+consumo_materiales <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Consumo de materiales como contratista principal y materiales dados a subcontratistas >")))
+
+horas_trabajadas_obreros <- empleo_long %>%
+  filter(str_detect(Variable, fixed(" > Horas trabajadas por el personal dependiente de la razón social > Horas trabajadas por obreros >")))
+
+horas_trabajadas_admin <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Horas trabajadas por el personal dependiente de la razón social > Horas trabajadas por empleados administrativos, contables y de dirección")))
+
+horas_trabajadas_propietarios <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Horas trabajadas por el personal dependiente de la razón social > Horas trabajadas por propietarios, familiares y otros trabajadores no remunerados >")))
+
+personal_ocupado <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Personal ocupado > Personal ocupado total >")))
+  
+dias_trabajo <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Por entidad federativa > Días trabajados >")))
+
+
+```
+
+```{r}
+#Limpieza nombres
+tasa_ocupacion <- tasa_ocupacion %>%
+  mutate(Entidad = str_trim(str_extract(Variable, "[^>]+$")))
+
+tasa_ocupacion <- tasa_ocupacion %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+              str_remove_all("/[a-zA-Z0-9]+") %>%  # quita /a, /f1, etc.
+              str_trim()) %>%
+  rename(tasa_ocupacion = Valor) 
+
+tasa_ocupacion <- tasa_ocupacion %>%
+  select(-c(Variable))
+
+#Valor de producción
+valor_obras_zona <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Valor de producción según la localización de las obras > Total de valor de producción según la localización de las obras "))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(valor_obras_zona = Valor) %>%
+  select(-Variable)
+
+#Remuneraciones totales
+remuneraciones_totales <- empleo_long %>%
+  filter(str_detect(Variable, fixed("Remuneraciones > Remuneraciones totales >"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(remuneraciones_totales = Valor) %>%
+  select(-Variable)
+
+#Sueldos obreros
+remuneraciones_obreros <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Remuneraciones > Salarios pagados a obreros >"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(remuneraciones_obreros = Valor) %>%
+  select(-Variable)
+
+#Sueldos admin
+remuneraciones_admin <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Remuneraciones > Sueldos pagados a empleados administrativos, contables y de dirección"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(remuneraciones_admin = Valor) %>%
+  select(-Variable)
+
+#Prestaciones sociales
+remuneraciones_prestaciones <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Remuneraciones > Prestaciones sociales,contribuciones y utilidades"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(remuneraciones_prestaciones = Valor) %>%
+  select(-Variable)
+
+#Gastos bienes y servicios
+gastos_bienes_servicios <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Gastos por consumo de bienes y servicios > Total de gastos por consumo de bienes y servicios > "))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(gastos_bienes_servicios = Valor) %>%
+  select(-Variable)
+
+#Gastos materiales
+gastos_materiales <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Gastos en materiales para la construcción como contratista principal y materiales dados a subcontratistas >"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(gastos_materiales = Valor) %>%
+  select(-Variable)
+
+#Consumo de materiales
+consumo_materiales <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Consumo de materiales como contratista principal y materiales dados a subcontratistas >"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(consumo_materiales = Valor) %>%
+  select(-Variable)
+
+#Horas trabajadas obreros
+horas_trabajadas_obreros <- empleo_long %>%
+  filter(str_detect(Variable, fixed(" > Horas trabajadas por el personal dependiente de la razón social > Horas trabajadas por obreros >"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(horas_trabajadas_obreros = Valor) %>%
+  select(-Variable)
+
+#Horas trabajadas admin
+horas_trabajadas_admin <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Horas trabajadas por el personal dependiente de la razón social > Horas trabajadas por empleados administrativos, contables y de dirección"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(horas_trabajadas_admin = Valor) %>%
+  select(-Variable)
+
+#Horas trabajadas propietarios
+horas_trabajadas_propietarios <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Horas trabajadas por el personal dependiente de la razón social > Horas trabajadas por propietarios, familiares y otros trabajadores no remunerados >"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(horas_trabajadas_propietarios = Valor) %>%
+  select(-Variable)
+
+#Personal ocupado total
+personal_ocupado <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Personal ocupado > Personal ocupado total >"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(personal_ocupado = Valor) %>%
+  select(-Variable)
+
+#Días trabajados
+dias_trabajo <- empleo_long %>%
+  filter(str_detect(Variable, fixed("> Por entidad federativa > Días trabajados >"))) %>%
+  mutate(Entidad = str_extract(Variable, "[^>]+$") %>%
+                  str_remove_all("/[a-zA-Z0-9]+") %>%
+                  str_trim()) %>%
+  rename(dias_trabajo = Valor) %>%
+  select(-Variable)
+
+
+```
+
+```{r}
+dim_entidades <- read_csv("C:/Users/npalo/Downloads/Documents/Fuente de datos/Plataformas/entidades.csv")
+
+dim_periodos <- empleo_long %>%
+  distinct(Periodos) %>%
+  arrange(Periodos) %>%
+  mutate(id_periodo = row_number())
+
+setwd("C:/Users/npalo/Downloads/Documents/Fuente de datos/Plataformas")
+
+tasa_ocupacion_rel <- tasa_ocupacion %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, tasa_ocupacion)
+
+write_csv(tasa_ocupacion_rel, "dim.tasa_ocupacion.csv")
+
+valor_obras_zona_rel <- valor_obras_zona %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, valor_obras_zona)
+
+write_csv(valor_obras_zona_rel, "valor_obras_zona.csv")
+
+
+remuneraciones_totales_rel <- remuneraciones_totales %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, remuneraciones_totales)
+
+write_csv(remuneraciones_totales_rel, "remuneraciones_totales.csv")
+
+remuneraciones_obreros_rel <- remuneraciones_obreros %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, remuneraciones_obreros)
+
+write_csv(remuneraciones_obreros_rel, "remuneraciones_obreros.csv")
+
+
+remuneraciones_admin_rel <- remuneraciones_admin %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, remuneraciones_admin)
+
+write_csv(remuneraciones_admin_rel, "remuneraciones_admin.csv")
+
+remuneraciones_prestaciones_rel <- remuneraciones_prestaciones %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, remuneraciones_prestaciones)
+
+write_csv(remuneraciones_prestaciones_rel, "remuneraciones_prestaciones.csv")
+
+gastos_bienes_servicios_rel <- gastos_bienes_servicios %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, gastos_bienes_servicios)
+
+write_csv(gastos_bienes_servicios_rel, "gastos_bienes_servicios.csv")
+
+gastos_materiales_rel <- gastos_materiales %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, gastos_materiales)
+
+write_csv(gastos_materiales_rel, "gastos_materiales.csv")
+
+consumo_materiales_rel <- consumo_materiales %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, consumo_materiales)
+
+write_csv(consumo_materiales_rel, "consumo_materiales.csv")
+
+horas_trabajadas_obreros_rel <- horas_trabajadas_obreros %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, horas_trabajadas_obreros)
+
+write_csv(horas_trabajadas_obreros_rel, "horas_trabajadas_obreros.csv")
+
+horas_trabajadas_admin_rel <- horas_trabajadas_admin %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, horas_trabajadas_admin)
+
+write_csv(horas_trabajadas_admin_rel, "horas_trabajadas_admin.csv")
+
+horas_trabajadas_propietarios_rel <- horas_trabajadas_propietarios %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, horas_trabajadas_propietarios)
+
+write_csv(horas_trabajadas_propietarios_rel, "horas_trabajadas_propietarios.csv")
+
+personal_ocupado_rel <- personal_ocupado %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, personal_ocupado)
+
+write_csv(personal_ocupado_rel, "personal_ocupado.csv")
+
+dias_trabajo_rel <- dias_trabajo %>%
+  left_join(dim_entidades, by = c("Entidad" = "entidad")) %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(cve_entidad, id_periodo, dias_trabajo)
+
+write_csv(dias_trabajo_rel, "dias_trabajo.csv")
+
+write_csv(dim_periodos, "dim_periodos.csv")
+
+```
+
+
+
+```{r}
+
+# 1. Leer el CSV (usa Latin1 si hay problemas de acentos)
+df <- read_csv("C:/Users/npalo/Downloads/Indicadores20250910210454.csv")
+
+# 2. Pasar de wide a long
+df_long <- df %>%
+  pivot_longer(
+    cols = -Periodos, 
+    names_to = "Variable", 
+    values_to = "Valor"
+  )
+
+# 3. Limpiar nombres de variables
+# 3. Limpiar las rutas de variables
+df_long <- df_long %>%
+  mutate(
+    Variable = str_squish(Variable),                           # quita espacios dobles
+    Variable = str_remove_all(Variable, "/[a-zA-Z0-9 ]+"),     # borra /p2 /a /f2
+    # separar niveles por ">"
+    Nivel1 = str_split(Variable, ">", simplify = TRUE)[,1],
+    Nivel2 = str_split(Variable, ">", simplify = TRUE)[,2],
+    Nivel3 = str_split(Variable, ">", simplify = TRUE)[,3],
+    Nivel4 = str_split(Variable, ">", simplify = TRUE)[,4],
+    Nivel5 = str_split(Variable, ">", simplify = TRUE)[,5]
+  )
+
+# 4. Identificar grupo y nombre del indicador
+df_long <- df_long %>%
+  mutate(
+    Grupo   = str_trim(ifelse(Nivel4 %in% c(" Mujeres ", " Hombres ", " Población total "),
+                              Nivel4,
+                              Nivel3)),
+    Indicador = str_trim(Nivel5)  # el último nivel suele ser el nombre del indicador
+  )
+
+
+# Supongamos que tu tabla larga se llama df_long
+df_normalizado <- df_long %>%
+  select(Periodos, Nivel4, Nivel5, Valor)
+
+df_normalizado <- df_normalizado %>%
+  transmute(
+    Periodos = Periodos,
+    Sexo        = Nivel4,
+    Categoria   = Nivel5,
+    Valor
+  )
+
+df_norm_rel <- df_normalizado %>%
+  left_join(dim_periodos, by = "Periodos") %>%
+  select(id_periodo, everything())
+
+setwd("C:/Users/npalo/Downloads/Documents/Fuente de datos/Plataformas")
+
+# 5. Exportar tabla limpia
+write_csv(df_norm_rel, "indicadores_normalizados.csv")
+```
+
+
+
